@@ -1,0 +1,2 @@
+ストックハム法でのGPU実装(stockham.c)に対してBarrett除算を適応したのがstockham_barrett.cです
+計算結果が一致しないのでCPU実装と比較して調査してるのがstockham_barrett_compare.cです
