@@ -149,6 +149,20 @@ int main(int argc, char** argv) {
 
             gettimeofday(&end_time, NULL);
 
+            long *ans;
+            if (kk == 1) {
+                clEnqueueReadBuffer(commands, d_x, CL_TRUE, 0, sizeof(long) * N, x, 0, NULL, NULL);
+                ans = x;  
+            } else {
+                clEnqueueReadBuffer(commands, d_x_copy, CL_TRUE, 0, sizeof(long) * N, x_copy, 0, NULL, NULL);
+                ans = x_copy;  
+            }
+
+            // 結果の出力
+            //for (long i = 0; i < N; i++) {
+            printf("index 0: GPU = %ld\n", ans[0]);
+            //}
+
             clEnqueueReadBuffer(commands, d_x_copy, CL_TRUE, 0, sizeof(long) * N, x_copy, 0, NULL, NULL);
             clReleaseMemObject(d_x_copy);
             clReleaseMemObject(d_x);

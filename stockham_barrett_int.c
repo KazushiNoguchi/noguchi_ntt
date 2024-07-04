@@ -12,35 +12,35 @@
 
 #define CHECK_CL_ERROR(err, msg) if (err != CL_SUCCESS) { printf("%s failed: %d\n", msg, err); exit(1); }
 
-long power(long a, long n) {
+int power(int a, int n) {
     if (n == 1) return a;
     else if (n == 0) return 1;
     else if (n % 2 == 0) {
-        long k = power(a, n / 2);
+        int k = power(a, n / 2);
         return (k * k);
     } else if (n % 2 == 1) {
-        long k = power(a, (n - 1) / 2);
+        int k = power(a, (n - 1) / 2);
         return (k * k * a);
     }
     return 0;
 }
 
 const char *kernelsource = "__kernel void vadd (           \n" \
-"   const long N,                                 \n" \
-"   const long pN,                                \n" \
-"   const long a,                                 \n" \
-"   const long b,                                 \n" \
-"   const long g,                                 \n" \
-"   const long m,                                 \n" \
-"   const long p,                                 \n" \
-"   __global long *x,                             \n" \
-"   __global long *x_copy,                        \n" \
-"   __global long *rou,                           \n" \
-"   const long kk) {                              \n" \
-"       long j = get_global_id(0);                \n" \
-"       long j2 = j << 1;                         \n" \
-"       long j_mod_a = j % a;                     \n" \
-"       long c, d;                                \n" \
+"   const int N,                                 \n" \
+"   const int pN,                                \n" \
+"   const int a,                                 \n" \
+"   const int b,                                 \n" \
+"   const int g,                                 \n" \
+"   const int m,                                 \n" \
+"   const int p,                                 \n" \
+"   __global int *x,                             \n" \
+"   __global int *x_copy,                        \n" \
+"   __global int *rou,                           \n" \
+"   const int kk) {                              \n" \
+"       int j = get_global_id(0);                \n" \
+"       int j2 = j << 1;                         \n" \
+"       int j_mod_a = j % a;                     \n" \
+"       int c, d;                                \n" \
 "       if (kk == 0) {                            \n" \
 "           c = x_copy[j];                        \n" \
 "           d = rou[(j_mod_a * b * pN) % (p - 1)] * x_copy[j + (N >> 1)]; \n" \
@@ -51,7 +51,7 @@ const char *kernelsource = "__kernel void vadd (           \n" \
 "           if (x[j2 - j_mod_a] < 0) x[j2 - j_mod_a] += p; \n" \
 "           x[j2 - j_mod_a + a] = (c - d) % p;    \n" \
 "           if (x[j2 - j_mod_a + a] < 0) x[j2 - j_mod_a + a] += p; \n" \
-"           //printf(\"GPU Step kk == 0: j = %ld, c = %ld, d = %ld, x[%ld] = %ld, x[%ld] = %ld\\n\", j, c, d, j2 - j_mod_a, x[j2 - j_mod_a], j2 - j_mod_a + a, x[j2 - j_mod_a + a]); \n" \
+"           //printf(\"GPU Step kk == 0: j = %d, c = %d, d = %d, x[%d] = %d, x[%d] = %d\\n\", j, c, d, j2 - j_mod_a, x[j2 - j_mod_a], j2 - j_mod_a + a, x[j2 - j_mod_a + a]); \n" \
 "       } else {                                  \n" \
 "           c = x[j];                             \n" \
 "           d = rou[(j_mod_a * b * pN) % (p - 1)] * x[j + (N >> 1)]; \n" \
@@ -62,17 +62,17 @@ const char *kernelsource = "__kernel void vadd (           \n" \
 "           if (x_copy[j2 - j_mod_a] < 0) x_copy[j2 - j_mod_a] += p; \n" \
 "           x_copy[j2 - j_mod_a + a] = (c - d) % p; \n" \
 "           if (x_copy[j2 - j_mod_a + a] < 0) x_copy[j2 - j_mod_a + a] += p; \n" \
-"           //printf(\"GPU Step kk == 1: j = %ld, c = %ld, d = %ld, x_copy[%ld] = %ld, x_copy[%ld] = %ld\\n\", j, c, d, j2 - j_mod_a, x_copy[j2 - j_mod_a], j2 - j_mod_a + a, x_copy[j2 - j_mod_a + a]); \n" \
+"           //printf(\"GPU Step kk == 1: j = %d, c = %d, d = %d, x_copy[%d] = %d, x_copy[%d] = %d\\n\", j, c, d, j2 - j_mod_a, x_copy[j2 - j_mod_a], j2 - j_mod_a + a, x_copy[j2 - j_mod_a + a]); \n" \
 "       }                                         \n" \
 "}                                                \n";
 
 int main(int argc, char** argv) {
-    long g = 17;
-    long p = 3329;
+    int g = 17;
+    int p = 3329;
 
-    for (long n = 4; n <= 23; n++) {
+    for (int n = 4; n <= 23; n++) {
         double total_time = 0.0;
-        long N = 1 << n;
+        int N = 1 << n;
         for (int iii = 0; iii < 10; iii++) {
             cl_int err;
 
@@ -110,55 +110,55 @@ int main(int argc, char** argv) {
             ko_vadd = clCreateKernel(program, "vadd", &err);
             CHECK_CL_ERROR(err, "clCreateKernel");
 
-            long *x = (long *)malloc(N * sizeof(long));
-            long *x_copy = (long *)malloc(N * sizeof(long));
-            long *rou = (long *)malloc((p - 1) * sizeof(long));
-            long *x_cpu = (long *)malloc(N * sizeof(long));
+            int *x = (int *)malloc(N * sizeof(int));
+            int *x_copy = (int *)malloc(N * sizeof(int));
+            int *rou = (int *)malloc((p - 1) * sizeof(int));
+            int *x_cpu = (int *)malloc(N * sizeof(int));
 
             if (x == NULL || x_copy == NULL || rou == NULL || x_cpu == NULL) {
                 printf("Error allocating memory\n");
                 exit(1);
             }
 
-            for (long i = 0; i < N; i++) {
+            for (int i = 0; i < N; i++) {
                 x[i] = 0;
                 x_copy[i] = rand() % p;
                 x_cpu[i] = x_copy[i];
-                //printf("Initial data: x_copy[%ld] = %ld\n", i, x_copy[i]);
+                //printf("Initial data: x_copy[%d] = %d\n", i, x_copy[i]);
             }
 
             rou[0] = 1;
-            for (long i = 0; i < p - 2; i++) rou[i + 1] = (rou[i] * g) % p;
+            for (int i = 0; i < p - 2; i++) rou[i + 1] = (rou[i] * g) % p;
 
             struct timeval start_time, end_time;
             gettimeofday(&start_time, NULL);
 
-            cl_mem d_x = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(long) * N, x, &err);
+            cl_mem d_x = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(int) * N, x, &err);
             CHECK_CL_ERROR(err, "clCreateBuffer d_x");
-            cl_mem d_x_copy = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(long) * N, x_copy, &err);
+            cl_mem d_x_copy = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(int) * N, x_copy, &err);
             CHECK_CL_ERROR(err, "clCreateBuffer d_x_copy");
-            cl_mem d_rou = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(long) * (p - 1), rou, &err);
+            cl_mem d_rou = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int) * (p - 1), rou, &err);
             CHECK_CL_ERROR(err, "clCreateBuffer d_rou");
 
-            long pN = (p - 1) / N;
-            long a = 1;
-            long b = power(2, n - 1);
+            int pN = (p - 1) / N;
+            int a = 1;
+            int b = power(2, n - 1);
             double inv_p = 1.0 / (double)p;
-            long m = (long)(inv_p * (double)((1ULL << 52) + 0.5));
+            int m = (int)(inv_p * (double)((1ULL << 52) + 0.5));
 
-            err = clSetKernelArg(ko_vadd, 0, sizeof(long), &N);
+            err = clSetKernelArg(ko_vadd, 0, sizeof(int), &N);
             CHECK_CL_ERROR(err, "clSetKernelArg 0");
-            err = clSetKernelArg(ko_vadd, 1, sizeof(long), &pN);
+            err = clSetKernelArg(ko_vadd, 1, sizeof(int), &pN);
             CHECK_CL_ERROR(err, "clSetKernelArg 1");
-            err = clSetKernelArg(ko_vadd, 2, sizeof(long), &a);
+            err = clSetKernelArg(ko_vadd, 2, sizeof(int), &a);
             CHECK_CL_ERROR(err, "clSetKernelArg 2");
-            err = clSetKernelArg(ko_vadd, 3, sizeof(long), &b);
+            err = clSetKernelArg(ko_vadd, 3, sizeof(int), &b);
             CHECK_CL_ERROR(err, "clSetKernelArg 3");
-            err = clSetKernelArg(ko_vadd, 4, sizeof(long), &g);
+            err = clSetKernelArg(ko_vadd, 4, sizeof(int), &g);
             CHECK_CL_ERROR(err, "clSetKernelArg 4");
-            err = clSetKernelArg(ko_vadd, 5, sizeof(long), &m);
+            err = clSetKernelArg(ko_vadd, 5, sizeof(int), &m);
             CHECK_CL_ERROR(err, "clSetKernelArg 5");
-            err = clSetKernelArg(ko_vadd, 6, sizeof(long), &p);
+            err = clSetKernelArg(ko_vadd, 6, sizeof(int), &p);
             CHECK_CL_ERROR(err, "clSetKernelArg 6");
             err = clSetKernelArg(ko_vadd, 7, sizeof(cl_mem), &d_x);
             CHECK_CL_ERROR(err, "clSetKernelArg 7");
@@ -167,14 +167,15 @@ int main(int argc, char** argv) {
             err = clSetKernelArg(ko_vadd, 9, sizeof(cl_mem), &d_rou);
             CHECK_CL_ERROR(err, "clSetKernelArg 9");
 
-            long kk = 0;
+            int kk = 0;
             size_t M = 1 << (n - 1);
+            size_t nn = 4;
 
             for (int i = 0; i < n; i++) {
-                err = clSetKernelArg(ko_vadd, 10, sizeof(long), &kk);
+                err = clSetKernelArg(ko_vadd, 10, sizeof(int), &kk);
                 CHECK_CL_ERROR(err, "clSetKernelArg 10");
 
-                err = clEnqueueNDRangeKernel(commands, ko_vadd, 1, NULL, &M, NULL, 0, NULL, NULL);
+                err = clEnqueueNDRangeKernel(commands, ko_vadd, 1, NULL, &M, &nn, 0, NULL, NULL);
                 CHECK_CL_ERROR(err, "clEnqueueNDRangeKernel");
                 clFinish(commands);
 
@@ -185,18 +186,18 @@ int main(int argc, char** argv) {
 
             gettimeofday(&end_time, NULL);
 
-            long *ans;
+            int *ans;
             if (kk == 1) {
-                clEnqueueReadBuffer(commands, d_x, CL_TRUE, 0, sizeof(long) * N, x, 0, NULL, NULL);
+                clEnqueueReadBuffer(commands, d_x, CL_TRUE, 0, sizeof(int) * N, x, 0, NULL, NULL);
                 ans = x;  
             } else {
-                clEnqueueReadBuffer(commands, d_x_copy, CL_TRUE, 0, sizeof(long) * N, x_copy, 0, NULL, NULL);
+                clEnqueueReadBuffer(commands, d_x_copy, CL_TRUE, 0, sizeof(int) * N, x_copy, 0, NULL, NULL);
                 ans = x_copy;  
             }
 
             // 結果の出力
-            //for (long i = 0; i < N; i++) {
-            //printf("index 0: GPU = %ld\n", ans[0]);
+            //for (int i = 0; i < N; i++) {
+            printf("index 0: GPU = %d\n", ans[0]);
             //}
 
             clReleaseMemObject(d_x_copy);
@@ -215,7 +216,7 @@ int main(int argc, char** argv) {
             double elapsed_time = (end_time.tv_sec - start_time.tv_sec) + (end_time.tv_usec - start_time.tv_usec) / 1000000.0;
             total_time += elapsed_time;
         }
-        printf("Elapsed time for N = %ld: %f seconds\n", N, total_time);
+        printf("Elapsed time for N = %d: %f seconds\n", N, total_time);
     }
     return 0;
 }
