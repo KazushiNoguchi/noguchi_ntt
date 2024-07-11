@@ -28,54 +28,57 @@ int power(int a, int n) {
 const char *kernelsource = "__kernel void vadd (           \n" \
 "   const int N,                                 \n" \
 "   const int pN,                                \n" \
-"   const int a,                                 \n" \
-"   const int b,                                 \n" \
 "   const int g,                                 \n" \
 "   const int m,                                 \n" \
 "   const int p,                                 \n" \
+"   const int n,                                 \n" \
 "   __global int *x,                             \n" \
 "   __global int *x_copy,                        \n" \
-"   __global int *rou,                           \n" \
-"   const int kk) {                              \n" \
+"   __global int *rou) {                         \n" \
 "       int j = get_global_id(0);                \n" \
-"       int j2 = j << 1;                         \n" \
-"       int j_mod_a = j % a;                     \n" \
-"       int c, d;                                \n" \
-"       if (kk == 0) {                            \n" \
-"           c = x_copy[j];                        \n" \
-"           d = rou[(j_mod_a * b * pN) % (p - 1)] * x_copy[j + (N >> 1)]; \n" \
-"           //printf(\"GPU Step kk == 0: j = %d, c = %d, d = %d, x[%d] = %d, x[%d] = %d, b = %d,\\n\", j, c, d, j2 - j_mod_a, x[j2 - j_mod_a], j2 - j_mod_a + a, x[j2 - j_mod_a + a], b); \n" \
-"           d = (d - ((d * m) >> 31) * p);        \n" \
-"           if (d >= p) d -= p;                   \n" \
-"           if (d < 0) d += p;                    \n" \
-"           x[j2 - j_mod_a] = (c + d) % p;        \n" \
-"           if (x[j2 - j_mod_a] < 0) x[j2 - j_mod_a] += p; \n" \
-"           x[j2 - j_mod_a + a] = (c - d) % p;    \n" \
-"           if (x[j2 - j_mod_a + a] < 0) x[j2 - j_mod_a + a] += p; \n" \
-"           printf(\"GPU Step kk == 0: j = %d, c = %d, d = %d, x[%d] = %d, x[%d] = %d, b = %d,\\n\", j, c, d, j2 - j_mod_a, x[j2 - j_mod_a], j2 - j_mod_a + a, x[j2 - j_mod_a + a], b); \n" \
-"       } else {                                  \n" \
-"           c = x[j];                             \n" \
-"           d = rou[(j_mod_a * b * pN) % (p - 1)] * x[j + (N >> 1)]; \n" \
-"           //printf(\"GPU Step kk == 1: j = %d, c = %d, d = %d, x_copy[%d] = %d, x_copy[%d] = %d, b = %d\\n\", j, c, d, j2 - j_mod_a, x_copy[j2 - j_mod_a], j2 - j_mod_a + a, x_copy[j2 - j_mod_a + a], b); \n" \
-"           d = (d - ((d * m) >> 31) * p);        \n" \
-"           if (d >= p) d -= p;                   \n" \
-"           if (d < 0) d += p;                    \n" \
-"           x_copy[j2 - j_mod_a] = (c + d) % p;   \n" \
-"           if (x_copy[j2 - j_mod_a] < 0) x_copy[j2 - j_mod_a] += p; \n" \
-"           x_copy[j2 - j_mod_a + a] = (c - d) % p; \n" \
-"           if (x_copy[j2 - j_mod_a + a] < 0) x_copy[j2 - j_mod_a + a] += p; \n" \
-"           printf(\"GPU Step kk == 1: j = %d, c = %d, d = %d, x_copy[%d] = %d, x_copy[%d] = %d, b = %d\\n\", j, c, d, j2 - j_mod_a, x_copy[j2 - j_mod_a], j2 - j_mod_a + a, x_copy[j2 - j_mod_a + a], b); \n" \
-"       }                                         \n" \
-"}                                                \n";
-
+"       int kk = 0;                              \n" \
+"       int a = 1;                               \n" \
+"       int b = 1 << (n-1);                 \n" \
+"       for (int i = 0; i < n; i++) {            \n" \
+"           int j2 = j << 1;                     \n" \
+"           int j_mod_a = j % a;                 \n" \
+"           int c, d;                            \n" \
+"           if (kk == 0) {                        \n" \
+"               c = x_copy[j];                        \n" \
+"               d = rou[(j_mod_a * b * pN) % (p - 1)] * x_copy[j + (N >> 1)]; \n" \
+"               d = (d - ((d * m) >> 31) * p);        \n" \
+"               if (d >= p) d -= p;                   \n" \
+"               if (d < 0) d += p;                    \n" \
+"               x[j2 - j_mod_a] = (c + d) % p;        \n" \
+"               if (x[j2 - j_mod_a] < 0) x[j2 - j_mod_a] += p; \n" \
+"               x[j2 - j_mod_a + a] = (c - d) % p;    \n" \
+"               if (x[j2 - j_mod_a + a] < 0) x[j2 - j_mod_a + a] += p; \n" \
+"               //printf(\"GPU Step kk == 0: j = %d, c = %d, d = %d, x[%d] = %d, x[%d] = %d, b = %d\\n\", j, c, d, j2 - j_mod_a, x[j2 - j_mod_a], j2 - j_mod_a + a, x[j2 - j_mod_a + a], b); \n" \
+"           } else {                                  \n" \
+"               c = x[j];                             \n" \
+"               d = rou[(j_mod_a * b * pN) % (p - 1)] * x[j + (N >> 1)]; \n" \
+"               d = (d - ((d * m) >> 31) * p);        \n" \
+"               if (d >= p) d -= p;                   \n" \
+"               if (d < 0) d += p;                    \n" \
+"               x_copy[j2 - j_mod_a] = (c + d) % p;   \n" \
+"               if (x_copy[j2 - j_mod_a] < 0) x_copy[j2 - j_mod_a] += p; \n" \
+"               x_copy[j2 - j_mod_a + a] = (c - d) % p; \n" \
+"               if (x_copy[j2 - j_mod_a + a] < 0) x_copy[j2 - j_mod_a + a] += p; \n" \
+"               //printf(\"GPU Step kk == 1: j = %d, c = %d, d = %d, x_copy[%d] = %d, x_copy[%d] = %d, b = %d \\n\", j, c, d, j2 - j_mod_a, x_copy[j2 - j_mod_a], j2 - j_mod_a + a, x_copy[j2 - j_mod_a + a], b); \n" \
+"           }                                         \n" \
+"           a <<= 1;                                  \n" \
+"           b >>= 1;                                  \n" \
+"           kk = 1 - kk;                              \n" \
+"       }                                             \n" \
+"}                                                    \n";
 int main(int argc, char** argv) {
     int g = 17;
     int p = 3329;
 
-    for (int n = 3; n <= 23; n++) {
+    for (int n = 4; n <= 23; n++) {
         double total_time = 0.0;
         int N = 1 << n;
-        for (int iii = 0; iii < 1; iii++) {
+        for (int iii = 0; iii < 10; iii++) {
             cl_int err;
 
             cl_platform_id platform_id;
@@ -143,8 +146,6 @@ int main(int argc, char** argv) {
             CHECK_CL_ERROR(err, "clCreateBuffer d_rou");
 
             int pN = (p - 1) / N;
-            int a = 1;
-            int b = power(2, n - 1);
             double inv_p = 1.0 / (double)p;
             int m = (int)(inv_p * (double)((1ULL << 31) + 0.5));
 
@@ -152,44 +153,36 @@ int main(int argc, char** argv) {
             CHECK_CL_ERROR(err, "clSetKernelArg 0");
             err = clSetKernelArg(ko_vadd, 1, sizeof(int), &pN);
             CHECK_CL_ERROR(err, "clSetKernelArg 1");
-            err = clSetKernelArg(ko_vadd, 4, sizeof(int), &g);
+            err = clSetKernelArg(ko_vadd, 2, sizeof(int), &g);
+            CHECK_CL_ERROR(err, "clSetKernelArg 2");
+            err = clSetKernelArg(ko_vadd, 3, sizeof(int), &m);
+            CHECK_CL_ERROR(err, "clSetKernelArg 3");
+            err = clSetKernelArg(ko_vadd, 4, sizeof(int), &p);
             CHECK_CL_ERROR(err, "clSetKernelArg 4");
-            err = clSetKernelArg(ko_vadd, 5, sizeof(int), &m);
+            err = clSetKernelArg(ko_vadd, 5, sizeof(int), &n);
             CHECK_CL_ERROR(err, "clSetKernelArg 5");
-            err = clSetKernelArg(ko_vadd, 6, sizeof(int), &p);
+            err = clSetKernelArg(ko_vadd, 6, sizeof(cl_mem), &d_x);
             CHECK_CL_ERROR(err, "clSetKernelArg 6");
-            err = clSetKernelArg(ko_vadd, 7, sizeof(cl_mem), &d_x);
+            err = clSetKernelArg(ko_vadd, 7, sizeof(cl_mem), &d_x_copy);
             CHECK_CL_ERROR(err, "clSetKernelArg 7");
-            err = clSetKernelArg(ko_vadd, 8, sizeof(cl_mem), &d_x_copy);
+            err = clSetKernelArg(ko_vadd, 8, sizeof(cl_mem), &d_rou);
             CHECK_CL_ERROR(err, "clSetKernelArg 8");
-            err = clSetKernelArg(ko_vadd, 9, sizeof(cl_mem), &d_rou);
-            CHECK_CL_ERROR(err, "clSetKernelArg 9");
 
-            int kk = 0;
             size_t M = 1 << (n - 1);
             size_t nn = 1;
 
-            for (int i = 0; i < n; i++) {
-
-                err = clSetKernelArg(ko_vadd, 3, sizeof(int), &b);
-                CHECK_CL_ERROR(err, "clSetKernelArg 3");
-                err = clSetKernelArg(ko_vadd, 2, sizeof(int), &a);
-                CHECK_CL_ERROR(err, "clSetKernelArg 2");
-                err = clSetKernelArg(ko_vadd, 10, sizeof(int), &kk);
-                CHECK_CL_ERROR(err, "clSetKernelArg 10");
-                err = clEnqueueNDRangeKernel(commands, ko_vadd, 1, NULL, &M, &nn, 0, NULL, NULL);
-                CHECK_CL_ERROR(err, "clEnqueueNDRangeKernel");
-                clFinish(commands);
-
-                a <<= 1;
-                b >>= 1;
-                kk = 1 - kk;
-            }
+            err = clEnqueueNDRangeKernel(commands, ko_vadd, 1, NULL, &M, &nn, 0, NULL, NULL);
+            CHECK_CL_ERROR(err, "clEnqueueNDRangeKernel");
+            clFinish(commands);
 
             gettimeofday(&end_time, NULL);
 
+
+            double elapsed_time = (end_time.tv_sec - start_time.tv_sec) + (end_time.tv_usec - start_time.tv_usec) / 1000000.0;
+            total_time += elapsed_time;
+
             int *ans;
-            if (kk == 1) {
+            if (n % 2 == 1) {
                 clEnqueueReadBuffer(commands, d_x, CL_TRUE, 0, sizeof(int) * N, x, 0, NULL, NULL);
                 ans = x;  
             } else {
@@ -198,9 +191,9 @@ int main(int argc, char** argv) {
             }
 
             // 結果の出力
-            for (int i = 0; i < N; i++) {
-                printf("index 0: GPU = %d\n", ans[i]);
-            }
+            //for (int i = 0; i < N; i++) {
+            //printf("index 0: GPU = %d\n", ans[i]);
+            //}
 
             clReleaseMemObject(d_x_copy);
             clReleaseMemObject(d_x);
@@ -215,11 +208,8 @@ int main(int argc, char** argv) {
             free(rou);
             free(x_cpu);
 
-            double elapsed_time = (end_time.tv_sec - start_time.tv_sec) + (end_time.tv_usec - start_time.tv_usec) / 1000000.0;
-            total_time += elapsed_time;
         }
         printf("Elapsed time for N = %d: %f ms\n", N, total_time * 100);
     }
     return 0;
 }
-

@@ -44,25 +44,25 @@ const char *kernelsource = "__kernel void vadd (           \n" \
 "       if (kk == 0) {                            \n" \
 "           c = x_copy[j];                        \n" \
 "           d = rou[(j_mod_a * b * pN) % (p - 1)] * x_copy[j + (N >> 1)]; \n" \
-"           d = (d - ((d * m) >> 52) * p);        \n" \
-"           if (d >= p) d -= p;                   \n" \
-"           if (d < 0) d += p;                    \n" \
+"           d = (d - ((d * m) >> 31) * p);        \n" \
+"           //if (d >= p) d -= p;                   \n" \
+"           //if (d < 0) d += p;                    \n" \
 "           x[j2 - j_mod_a] = (c + d) % p;        \n" \
 "           if (x[j2 - j_mod_a] < 0) x[j2 - j_mod_a] += p; \n" \
 "           x[j2 - j_mod_a + a] = (c - d) % p;    \n" \
 "           if (x[j2 - j_mod_a + a] < 0) x[j2 - j_mod_a + a] += p; \n" \
-"           //printf(\"GPU Step kk == 0: j = %ld, c = %ld, d = %ld, x[%ld] = %ld, x[%ld] = %ld\\n\", j, c, d, j2 - j_mod_a, x[j2 - j_mod_a], j2 - j_mod_a + a, x[j2 - j_mod_a + a]); \n" \
+"           printf(\"GPU Step kk == 0: j = %ld, c = %ld, d = %ld, x[%ld] = %ld, x[%ld] = %ld\\n\", j, c, d, j2 - j_mod_a, x[j2 - j_mod_a], j2 - j_mod_a + a, x[j2 - j_mod_a + a]); \n" \
 "       } else {                                  \n" \
 "           c = x[j];                             \n" \
 "           d = rou[(j_mod_a * b * pN) % (p - 1)] * x[j + (N >> 1)]; \n" \
-"           d = (d - ((d * m) >> 52) * p);        \n" \
+"           d = (d - ((d * m) >> 31) * p);        \n" \
 "           if (d >= p) d -= p;                   \n" \
 "           if (d < 0) d += p;                    \n" \
 "           x_copy[j2 - j_mod_a] = (c + d) % p;   \n" \
 "           if (x_copy[j2 - j_mod_a] < 0) x_copy[j2 - j_mod_a] += p; \n" \
 "           x_copy[j2 - j_mod_a + a] = (c - d) % p; \n" \
 "           if (x_copy[j2 - j_mod_a + a] < 0) x_copy[j2 - j_mod_a + a] += p; \n" \
-"           //printf(\"GPU Step kk == 1: j = %ld, c = %ld, d = %ld, x_copy[%ld] = %ld, x_copy[%ld] = %ld\\n\", j, c, d, j2 - j_mod_a, x_copy[j2 - j_mod_a], j2 - j_mod_a + a, x_copy[j2 - j_mod_a + a]); \n" \
+"           printf(\"GPU Step kk == 1: j = %ld, c = %ld, d = %ld, x_copy[%ld] = %ld, x_copy[%ld] = %ld\\n\", j, c, d, j2 - j_mod_a, x_copy[j2 - j_mod_a], j2 - j_mod_a + a, x_copy[j2 - j_mod_a + a]); \n" \
 "       }                                         \n" \
 "}                                                \n";
 
@@ -70,10 +70,10 @@ int main(int argc, char** argv) {
     long g = 17;
     long p = 3329;
 
-    for (long n = 4; n <= 23; n++) {
+    for (long n = 3; n <= 3; n++) {
         double total_time = 0.0;
         long N = 1 << n;
-        for (int iii = 0; iii < 10; iii++) {
+        for (int iii = 0; iii < 1; iii++) {
             cl_int err;
 
             cl_platform_id platform_id;
@@ -144,7 +144,7 @@ int main(int argc, char** argv) {
             long a = 1;
             long b = power(2, n - 1);
             double inv_p = 1.0 / (double)p;
-            long m = (long)(inv_p * (double)((1ULL << 52) + 0.5));
+            long m = (long)(inv_p * (double)((1ULL << 31) + 0.5));
 
             err = clSetKernelArg(ko_vadd, 0, sizeof(long), &N);
             CHECK_CL_ERROR(err, "clSetKernelArg 0");
@@ -195,9 +195,9 @@ int main(int argc, char** argv) {
             }
 
             // 結果の出力
-            //for (long i = 0; i < N; i++) {
-            //printf("index 0: GPU = %ld\n", ans[0]);
-            //}
+            for (int i = 0; i < N; i++) {
+                printf("index 0: GPU = %ld\n", ans[i]);
+            }
 
             clReleaseMemObject(d_x_copy);
             clReleaseMemObject(d_x);

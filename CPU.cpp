@@ -58,7 +58,7 @@ long inverse(long x, long p) {
 }
 
 int main() {
-    for (long n = 4; n <= 23; n++) {
+    for (long n = 4; n <= 15; n++) {
         double total_time = 0.0;
         const long N = power(2, n);
         long g = 17;
@@ -79,10 +79,10 @@ int main() {
             long *x = new long[N];
             long *x_copy = new long[N];
 
-            for (long i = 0; i < N; i++) f[i] = dist(gen);
-            for (long i = 0; i < N; i++) {
+            for (int i = 0; i < N; i++) {
                 x[i] = 0;
-                x_copy[i] = f[i];
+                x_copy[i] = rand() % p;
+                ////printf("Initial data: x_copy[%d] = %ld\n", i, x_copy[i]);
             }
 
             long a = 1;
@@ -101,6 +101,11 @@ int main() {
                             x[2 * a * j + k + a] = ((c - d) % p + p) % p;
                         }
                     }
+                    //printf("x =");
+                    for (int i = 0; i < N; i++) {
+                        //printf(" %ld", x[i]);
+                    }
+                    //printf("\n");
                 } else {
                     for (long j = 0; j < b; j++) {
                         for (long k = 0; k < a; k++) {
@@ -110,6 +115,11 @@ int main() {
                             x_copy[2 * a * j + k + a] = ((c - d) % p + p) % p;
                         }
                     }
+                    //printf("x_copy =");
+                    for (int i = 0; i < N; i++) {
+                        //printf(" %ld", x_copy[i]);
+                    }
+                    //printf("\n");
                 }
                 a = a * 2;
                 b = b / 2;
@@ -120,6 +130,20 @@ int main() {
             double elapsed_time = (end_time.tv_sec - start_time.tv_sec) + (end_time.tv_usec - start_time.tv_usec) / 1000000.0;
             total_time += elapsed_time;
 
+            long *ans;
+            if (imod2 == 1) {
+                ans = x;  
+            } else {
+                ans = x_copy;  
+            }
+
+            // 結果の出力
+            //printf("x =");
+            for (int i = 0; i < N; i++) {
+            //printf(" %ld", ans[i]);
+            }
+            //printf("\n");
+
             delete[] f;
             delete[] x;
             delete[] x_copy;
@@ -127,7 +151,7 @@ int main() {
 
         delete[] ml; // メモリ解放
 
-        cout << "Elapsed time for N = " << N << ": " << total_time << " seconds" << endl;
+        cout << "Elapsed time for N = " << N << ": " << total_time * 100 << " ms" << endl;
     }
     return 0;
 }
