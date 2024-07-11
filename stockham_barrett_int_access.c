@@ -60,7 +60,7 @@ const char *kernelsource = "__kernel void vadd (           \n" \
 "           barrier(CLK_LOCAL_MEM_FENCE);        \n" \
 "           x[j2 - j_mod_a] = shared_x[j2 - j_mod_a];     \n" \
 "           x[j2 - j_mod_a + a] = shared_x[j2 - j_mod_a + a]; \n" \
-"           //printf(\"GPU Step kk == 0: j = %d, c = %d, d = %d, x[%d] = %d, x[%d] = %d,shared_x[j2 - j_mod_a] = %d,(c + d) per p = %d,lid = %d,a = %d\\n\", j, c, d, j2 - j_mod_a, x[j2 - j_mod_a], j2 - j_mod_a + a, x[j2 - j_mod_a + a], shared_x[j2 - j_mod_a],(c + d) % p,lid,a); \n" \
+"           printf(\"GPU Step kk == 0: j = %d, c = %d, d = %d, x[%d] = %d, x[%d] = %d,shared_x[j2 - j_mod_a] = %d,(c + d) per p = %d,lid = %d,a = %d\\n\", j, c, d, j2 - j_mod_a, x[j2 - j_mod_a], j2 - j_mod_a + a, x[j2 - j_mod_a + a], shared_x[j2 - j_mod_a],(c + d) % p,lid,a); \n" \
 "       } else {                                 \n" \
 "           shared_x[lid] = x[j];                \n" \
 "           shared_x[lid + (N >> 1)] = x[j + (N >> 1)]; \n" \
@@ -77,7 +77,7 @@ const char *kernelsource = "__kernel void vadd (           \n" \
 "           barrier(CLK_LOCAL_MEM_FENCE);        \n" \
 "           x_copy[j2 - j_mod_a] = shared_x_copy[j2 - j_mod_a]; \n" \
 "           x_copy[j2 - j_mod_a + a] = shared_x_copy[j2 - j_mod_a + a]; \n" \
-"           //printf(\"GPU Step kk == 1: j = %d, c = %d, d = %d, x_copy[%d] = %d, x_copy[%d] = %d\\n\", j, c, d, j2 - j_mod_a, x_copy[j2 - j_mod_a], j2 - j_mod_a + a, x_copy[j2 - j_mod_a + a]); \n" \
+"           printf(\"GPU Step kk == 1: j = %d, c = %d, d = %d, x_copy[%d] = %d, x_copy[%d] = %d\\n\", j, c, d, j2 - j_mod_a, x_copy[j2 - j_mod_a], j2 - j_mod_a + a, x_copy[j2 - j_mod_a + a]); \n" \
 "       }                                        \n" \
 "}                                               \n";
 
@@ -89,10 +89,10 @@ int main(int argc, char** argv) {
     int g = 17;
     int p = 3329;
 
-    for (int n = 4; n <= 23; n++) {
+    for (int n = 4; n <= 4; n++) {
         double total_time = 0.0;
         int N = 1 << n;
-        for (int iii = 0; iii < 10; iii++) {
+        for (int iii = 0; iii < 1; iii++) {
             cl_int err;
 
             cl_platform_id platform_id;
@@ -169,10 +169,6 @@ int main(int argc, char** argv) {
             CHECK_CL_ERROR(err, "clSetKernelArg 0");
             err = clSetKernelArg(ko_vadd, 1, sizeof(int), &pN);
             CHECK_CL_ERROR(err, "clSetKernelArg 1");
-            err = clSetKernelArg(ko_vadd, 2, sizeof(int), &a);
-            CHECK_CL_ERROR(err, "clSetKernelArg 2");
-            err = clSetKernelArg(ko_vadd, 3, sizeof(int), &b);
-            CHECK_CL_ERROR(err, "clSetKernelArg 3");
             err = clSetKernelArg(ko_vadd, 4, sizeof(int), &g);
             CHECK_CL_ERROR(err, "clSetKernelArg 4");
             err = clSetKernelArg(ko_vadd, 5, sizeof(int), &m);
@@ -192,7 +188,11 @@ int main(int argc, char** argv) {
             gettimeofday(&start_time, NULL);
            
             for (int i = 0; i < n; i++) {
-
+                
+                err = clSetKernelArg(ko_vadd, 2, sizeof(int), &a);
+                CHECK_CL_ERROR(err, "clSetKernelArg 2");
+                err = clSetKernelArg(ko_vadd, 3, sizeof(int), &b);
+                CHECK_CL_ERROR(err, "clSetKernelArg 3");
                 err = clSetKernelArg(ko_vadd, 10, sizeof(int), &kk);
                 CHECK_CL_ERROR(err, "clSetKernelArg 10");
                 err = clSetKernelArg(ko_vadd, 11, N*sizeof(int), NULL); // ローカルメモリの割り当て

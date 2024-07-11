@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
     int g = 17;
     int p = 3329;
 
-    for (int n = 3; n <= 23; n++) {
+    for (int n = 4; n <= 4; n++) {
         double total_time = 0.0;
         int N = 1 << n;
         for (int iii = 0; iii < 1; iii++) {

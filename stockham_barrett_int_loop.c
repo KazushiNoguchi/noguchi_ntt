@@ -47,30 +47,23 @@ const char *kernelsource = "__kernel void vadd (           \n" \
 "               c = x_copy[j];                        \n" \
 "               d = rou[(j_mod_a * b * pN) % (p - 1)] * x_copy[j + (N >> 1)]; \n" \
 "               d = (d - ((d * m) >> 31) * p);        \n" \
-"               if (d >= p) d -= p;                   \n" \
-"               if (d < 0) d += p;                    \n" \
-"               x[j2 - j_mod_a] = (c + d) % p;        \n" \
+"               x[j2 - j_mod_a] = c + d > p ? c + d - p : c + d;        \n" \
 "               if (x[j2 - j_mod_a] < 0) x[j2 - j_mod_a] += p; \n" \
-"               x[j2 - j_mod_a + a] = (c - d) % p;    \n" \
+"               x[j2 - j_mod_a + a] = c < d ? c + p - d : c - d;    \n" \
 "               if (x[j2 - j_mod_a + a] < 0) x[j2 - j_mod_a + a] += p; \n" \
-"               //printf(\"GPU Step kk == 0: j = %d, c = %d, d = %d, x[%d] = %d, x[%d] = %d, b = %d\\n\", j, c, d, j2 - j_mod_a, x[j2 - j_mod_a], j2 - j_mod_a + a, x[j2 - j_mod_a + a], b); \n" \
 "           } else {                                  \n" \
 "               c = x[j];                             \n" \
 "               d = rou[(j_mod_a * b * pN) % (p - 1)] * x[j + (N >> 1)]; \n" \
 "               d = (d - ((d * m) >> 31) * p);        \n" \
-"               if (d >= p) d -= p;                   \n" \
-"               if (d < 0) d += p;                    \n" \
-"               x_copy[j2 - j_mod_a] = (c + d) % p;   \n" \
-"               if (x_copy[j2 - j_mod_a] < 0) x_copy[j2 - j_mod_a] += p; \n" \
-"               x_copy[j2 - j_mod_a + a] = (c - d) % p; \n" \
-"               if (x_copy[j2 - j_mod_a + a] < 0) x_copy[j2 - j_mod_a + a] += p; \n" \
-"               //printf(\"GPU Step kk == 1: j = %d, c = %d, d = %d, x_copy[%d] = %d, x_copy[%d] = %d, b = %d \\n\", j, c, d, j2 - j_mod_a, x_copy[j2 - j_mod_a], j2 - j_mod_a + a, x_copy[j2 - j_mod_a + a], b); \n" \
+"               x_copy[j2 - j_mod_a] = (c + d) > p ? c + d - p : c + d;   \n" \
+"               x_copy[j2 - j_mod_a + a] = c < d ? c + p - d : c - d; \n" \
 "           }                                         \n" \
 "           a <<= 1;                                  \n" \
 "           b >>= 1;                                  \n" \
 "           kk = 1 - kk;                              \n" \
 "       }                                             \n" \
 "}                                                    \n";
+
 int main(int argc, char** argv) {
     int g = 17;
     int p = 3329;

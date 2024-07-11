@@ -52,29 +52,21 @@ const char *kernelsource = "__kernel void vadd (           \n" \
 "           int c, d, e, f, f_;                  \n" \
 "           if (kk == 0) {                       \n" \
 "               c = shared_x_copy[j];            \n" \
-"               d = rou[(j_mod_a * b * pN) % (p - 1)] * shared_x_copy[(j + (N >> 1)) % N]; \n" \
+"               d = rou[(j_mod_a * b * pN) % (p - 1)] * shared_x_copy[(j + (N >> 1)) ]; \n" \
 "               d = (d - ((d * m) >> 31) * p);   \n" \
-"               shared_x[j2 - j_mod_a] = (c + d) % p; \n" \
-"               if (shared_x[j2 - j_mod_a] < 0) shared_x[j2 - j_mod_a] += p; \n" \
-"               shared_x[j2 - j_mod_a + a] = (c + p - d) % p; \n" \
-"               if (shared_x[j2 - j_mod_a + a] < 0) shared_x[j2 - j_mod_a + a] += p; \n" \
+"               shared_x[j2 - j_mod_a] = (c + d) > p ? c + d - p : c + d; \n" \
+"               shared_x[j2 - j_mod_a + a] = c < d ? c + p - d : c - d; \n" \
 "               barrier(CLK_LOCAL_MEM_FENCE);    \n" \
-"               printf(\"GPU Step kk == 0: j = %d, c = %d, d = %d, x[%d] = %d, x[%d] = %d, a = %d, b = %d\\n\", j, c, d, j2 - j_mod_a, shared_x[j2 - j_mod_a], j2 - j_mod_a + a, shared_x[j2 - j_mod_a + a], a, b); \n" \
+"               //printf(\"GPU Step kk == 0: j = %d, c = %d, d = %d, x[%d] = %d, x[%d] = %d, a = %d, b = %d\\n\", j, c, d, j2 - j_mod_a, shared_x[j2 - j_mod_a], j2 - j_mod_a + a, shared_x[j2 - j_mod_a + a], a, b); \n" \
 "           } else {                             \n" \
 "               e = shared_x[j];             \n" \
-"               f_ = shared_x[(j + (N >> 1)) % N];\n" \
-"               if (e >= p) e -= p;              \n" \
-"               if (e < 0) e += p;               \n" \
+"               f_ = shared_x[(j + (N >> 1))];\n" \
 "               f = rou[(j_mod_a * b * pN) % (p - 1)] * f_; \n" \
 "               f = (f - ((f * m) >> 31) * p);   \n" \
-"               if (f >= p) f -= p;              \n" \
-"               if (f < 0) f += p;               \n" \
-"               shared_x_copy[j2 - j_mod_a] = (e + f) % p; \n" \
-"               if (shared_x_copy[j2 - j_mod_a] < 0) shared_x_copy[j2 - j_mod_a] += p; \n" \
-"               shared_x_copy[j2 - j_mod_a + a] = (e - f) % p; \n" \
-"               if (shared_x_copy[j2 - j_mod_a + a] < 0) shared_x_copy[j2 - j_mod_a + a] += p; \n" \
+"               shared_x_copy[j2 - j_mod_a] =  (e + f) > p ? e + f - p : e + f; \n" \
+"               shared_x_copy[j2 - j_mod_a + a] = e < f ? e + f - d : e - f; \n" \
 "               barrier(CLK_LOCAL_MEM_FENCE);    \n" \
-"               printf(\"GPU Step kk == 1: j = %d, e = %d, f = %d, x_copy[%d] = %d, x_copy[%d] = %d, a = %d, b = %d\\n\", j, e, f, j2 - j_mod_a, shared_x_copy[j2 - j_mod_a], j2 - j_mod_a + a, shared_x_copy[j2 - j_mod_a + a], a, b); \n" \
+"               //printf(\"GPU Step kk == 1: j = %d, e = %d, f = %d, x_copy[%d] = %d, x_copy[%d] = %d, a = %d, b = %d\\n\", j, e, f, j2 - j_mod_a, shared_x_copy[j2 - j_mod_a], j2 - j_mod_a + a, shared_x_copy[j2 - j_mod_a + a], a, b); \n" \
 "           }                                    \n" \
 "           barrier(CLK_LOCAL_MEM_FENCE);        \n" \
 "           a <<= 1;                             \n" \
@@ -88,10 +80,10 @@ int main(int argc, char** argv) {
     int g = 17;
     int p = 3329;
 
-    for (int n = 4; n <= 4; n++) {
+    for (int n = 4; n <= 9; n++) {
         double total_time = 0.0;
         int N = 1 << n;
-        for (int iii = 0; iii < 1; iii++) {
+        for (int iii = 0; iii < 100; iii++) {
             cl_int err;
 
             cl_platform_id platform_id;
@@ -142,7 +134,7 @@ int main(int argc, char** argv) {
                 x[i] = 0;
                 x_copy[i] = rand() % p;
                 x_cpu[i] = x_copy[i];
-                printf("Initial data: x_copy[%d] = %d\n", i, x_copy[i]);
+                //printf("Initial data: x_copy[%d] = %d\n", i, x_copy[i]);
             }
 
             rou[0] = 1;
@@ -186,7 +178,7 @@ int main(int argc, char** argv) {
             CHECK_CL_ERROR(err, "clSetKernelArg 10");
 
             size_t M = 1 << (n - 1);
-            size_t nn = 1;
+            size_t nn = M;
 
             err = clEnqueueNDRangeKernel(commands, ko_vadd, 1, NULL, &M, &M, 0, NULL, NULL);
             CHECK_CL_ERROR(err, "clEnqueueNDRangeKernel");
@@ -211,6 +203,11 @@ int main(int argc, char** argv) {
             //for (int i = 0; i < N; i++) {
             //printf("index 0: GPU = %d\n", ans[i]);
             //}
+            cl_ulong local_mem_size;
+    err = clGetDeviceInfo(device_id, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(local_mem_size), &local_mem_size, NULL);
+    CHECK_CL_ERROR(err, "clGetDeviceInfo");
+
+    //printf("Local memory size: %llu bytes\n", local_mem_size);
 
             clReleaseMemObject(d_x_copy);
             clReleaseMemObject(d_x);
@@ -226,7 +223,7 @@ int main(int argc, char** argv) {
             free(x_cpu);
 
         }
-        printf("Elapsed time for N = %d: %f ms\n", N, total_time * 100);
+        printf("Elapsed time for N = %d: %f ms\n", N, total_time * 10);
     }
     return 0;
 }
