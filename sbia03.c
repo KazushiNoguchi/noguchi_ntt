@@ -40,57 +40,50 @@ const char *kernelsource = "__kernel void vadd (           \n" \
 "       int j = get_global_id(0);                \n" \
 "       int kk = 0;                              \n" \
 "       int a = 1;                               \n" \
-"       int b = 1 << (n-1);                 \n" \
-"       shared_x_copy[j] = x_copy[j];    \n" \
+"       int b = 1 << (n-1);                      \n" \
+"       shared_x[j] = 0;            \n" \
+"       shared_x[j + (N >> 1)] = 0; \n" \
+"       shared_x_copy[j] = x_copy[j];            \n" \
 "       shared_x_copy[j + (N >> 1)] = x_copy[j + (N >> 1)]; \n" \
-"       barrier(CLK_LOCAL_MEM_FENCE);        \n" \
+"       barrier(CLK_LOCAL_MEM_FENCE);            \n" \
 "       for (int i = 0; i < n; i++) {            \n" \
 "           int j2 = j << 1;                     \n" \
 "           int j_mod_a = j % a;                 \n" \
-"           int c, d, e, f, f_;                            \n" \
-"           if (kk == 0) {                           \n" \
-"               c = shared_x_copy[j] ;              \n" \
-"               if (c >= p) c -= p;                  \n" \
-"               if (c < 0) c += p;                   \n" \
-"               d = rou[(j_mod_a * b * pN) % (p - 1)] * shared_x_copy[j + (N >> 1)] ; \n" \
-"               //printf(\"GPU Step kk == 0: j = %d, c = %d, d = %d, x[%d] = %d, x[%d] = %d\\n\", j, c, d, j2 - j_mod_a, shared_x[j2 - j_mod_a], j2 - j_mod_a + a, shared_x[j2 - j_mod_a + a]); \n" \
-"               d = (d - ((d * m) >> 31) * p) ;       \n" \
-"               if (d >= p) d -= p;                  \n" \
-"               if (d < 0) d += p;                   \n" \
-"               //printf(\"GPU Step kk == 0: j = %d, c = %d, d = %d, x[%d] = %d, x[%d] = %d\\n\", j, c, d, j2 - j_mod_a, shared_x[j2 - j_mod_a], j2 - j_mod_a + a, shared_x[j2 - j_mod_a + a]); \n" \
-"               shared_x[j2 - j_mod_a] = (c + d) % p ;         \n" \
+"           int c, d, e, f, f_;                  \n" \
+"           if (kk == 0) {                       \n" \
+"               c = shared_x_copy[j];            \n" \
+"               d = rou[(j_mod_a * b * pN) % (p - 1)] * shared_x_copy[(j + (N >> 1)) % N]; \n" \
+"               d = (d - ((d * m) >> 31) * p);   \n" \
+"               shared_x[j2 - j_mod_a] = (c + d) % p; \n" \
 "               if (shared_x[j2 - j_mod_a] < 0) shared_x[j2 - j_mod_a] += p; \n" \
-"               shared_x[j2 - j_mod_a + a] = (c + p - d) % p;     \n" \
+"               shared_x[j2 - j_mod_a + a] = (c + p - d) % p; \n" \
 "               if (shared_x[j2 - j_mod_a + a] < 0) shared_x[j2 - j_mod_a + a] += p; \n" \
-"               barrier(CLK_LOCAL_MEM_FENCE);        \n" \
-"               printf(\"GPU Step kk == 0: j = %d, c = %d, d = %d, x[%d] = %d, x[%d] = %d,      a,b = %d,%d\\n\", j, c, d, j2 - j_mod_a, shared_x[j2 - j_mod_a], j2 - j_mod_a + a, shared_x[j2 - j_mod_a + a],a,b); \n" \
-"           } else {                                 \n" \
-"               e = shared_x[j] % p;                   \n" \
-"               f_ = shared_x[j + (N >> 1)];                   \n" \
-"               //printf(\"GPU Step kk == 1: j = %d, e = %d, f = %d, x_copy[%d] = %d, x_copy[%d] = %d\\n\", j, e, f, j2 - j_mod_a, shared_x_copy[j2 - j_mod_a], j2 - j_mod_a + a, shared_x_copy[j2 - j_mod_a + a]); \n" \
-"               if (e >= p) e -= p;                  \n" \
-"               if (e < 0) e += p;                   \n" \
+"               barrier(CLK_LOCAL_MEM_FENCE);    \n" \
+"               printf(\"GPU Step kk == 0: j = %d, c = %d, d = %d, x[%d] = %d, x[%d] = %d, a = %d, b = %d\\n\", j, c, d, j2 - j_mod_a, shared_x[j2 - j_mod_a], j2 - j_mod_a + a, shared_x[j2 - j_mod_a + a], a, b); \n" \
+"           } else {                             \n" \
+"               e = shared_x[j];             \n" \
+"               f_ = shared_x[(j + (N >> 1)) % N];\n" \
+"               if (e >= p) e -= p;              \n" \
+"               if (e < 0) e += p;               \n" \
 "               f = rou[(j_mod_a * b * pN) % (p - 1)] * f_; \n" \
-"               //printf(\"GPU Step kk == 1: j = %d, e = %d, f = %d, x_copy[%d] = %d, x_copy[%d] = %d\\n\", j, e, f, j2 - j_mod_a, shared_x_copy[j2 - j_mod_a], j2 - j_mod_a + a, shared_x_copy[j2 - j_mod_a + a]); \n" \
-"               f = (f - ((f * m) >> 31) * p) ;       \n" \
-"               if (f >= p) f -= p;                  \n" \
-"               if (f < 0) f += p;                   \n" \
-"               //printf(\"e = %d ,shared_x[%d] = %d, f = %d\\n\",e , j, shared_x[j], f); \n" \
-"               //printf(\"GPU Step kk == 1: j = %d, e = %d, f = %d, x_copy[%d] = %d, x_copy[%d] = %d\\n\", j, e, f, j2 - j_mod_a, shared_x_copy[j2 - j_mod_a], j2 - j_mod_a + a, shared_x_copy[j2 - j_mod_a + a]); \n" \
-"               shared_x_copy[j2 - j_mod_a] = (e + f) % p;    \n" \
+"               f = (f - ((f * m) >> 31) * p);   \n" \
+"               if (f >= p) f -= p;              \n" \
+"               if (f < 0) f += p;               \n" \
+"               shared_x_copy[j2 - j_mod_a] = (e + f) % p; \n" \
 "               if (shared_x_copy[j2 - j_mod_a] < 0) shared_x_copy[j2 - j_mod_a] += p; \n" \
 "               shared_x_copy[j2 - j_mod_a + a] = (e - f) % p; \n" \
 "               if (shared_x_copy[j2 - j_mod_a + a] < 0) shared_x_copy[j2 - j_mod_a + a] += p; \n" \
-"               barrier(CLK_LOCAL_MEM_FENCE);        \n" \
-"               printf(\"GPU Step kk == 1: j = %d, e = %d, f = %d, x_copy[%d] = %d, x_copy[%d] = %d      a,b = %d,%d\\n\", j, e, f, j2 - j_mod_a, shared_x_copy[j2 - j_mod_a], j2 - j_mod_a + a, shared_x_copy[j2 - j_mod_a + a],a,b); \n" \
-"           }                                        \n" \
+"               barrier(CLK_LOCAL_MEM_FENCE);    \n" \
+"               printf(\"GPU Step kk == 1: j = %d, e = %d, f = %d, x_copy[%d] = %d, x_copy[%d] = %d, a = %d, b = %d\\n\", j, e, f, j2 - j_mod_a, shared_x_copy[j2 - j_mod_a], j2 - j_mod_a + a, shared_x_copy[j2 - j_mod_a + a], a, b); \n" \
+"           }                                    \n" \
 "           barrier(CLK_LOCAL_MEM_FENCE);        \n" \
-"           a <<= 1;                                  \n" \
-"           b >>= 1;                                  \n" \
-"           kk = 1 - kk;                              \n" \
-"       }                                             \n" \
-"       x_copy[j] = shared_x_copy[j]; \n" \
-"}                                                    \n";
+"           a <<= 1;                             \n" \
+"           b >>= 1;                             \n" \
+"           kk = 1 - kk;                         \n" \
+"       }                                        \n" \
+"       x_copy[j] = shared_x_copy[j];            \n" \
+"}                                               \n";
+
 int main(int argc, char** argv) {
     int g = 17;
     int p = 3329;
@@ -195,7 +188,7 @@ int main(int argc, char** argv) {
             size_t M = 1 << (n - 1);
             size_t nn = 1;
 
-            err = clEnqueueNDRangeKernel(commands, ko_vadd, 1, NULL, &M, &nn, 0, NULL, NULL);
+            err = clEnqueueNDRangeKernel(commands, ko_vadd, 1, NULL, &M, &M, 0, NULL, NULL);
             CHECK_CL_ERROR(err, "clEnqueueNDRangeKernel");
             clFinish(commands);
 
